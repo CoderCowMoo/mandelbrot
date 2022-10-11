@@ -1,27 +1,48 @@
+use image::ImageBuffer;
 use num_complex::Complex;
-use std::{fs::File, io::Write};
+
+fn calculate_val(c: Complex<f64>, max_iter: usize) -> usize {
+    let mut z = Complex::new(0.0, 0.0);
+    for iter in 0..max_iter {
+        if z.norm() > 2.0 {
+            return iter;
+        }
+        z = z * z + c; // x^2 + c
+    }
+    0
+}
 
 // graph mandelbrot set in a .ppm file.
 fn main() {
     const IMAGE_WIDTH: usize = 500;
     const IMAGE_HEIGHT: usize = 500;
 
-    let data: Vec<u8> = vec![255, 0, 0, 0, 255, 0, 0, 0, 255];
+    let mut data = ImageBuffer::new(IMAGE_WIDTH as u32, IMAGE_HEIGHT as u32);
 
-    // instantiate ppm file
-    let mut out_file = match File::create("mandelbrot.ppm") {
-        Ok(file) => file,
-        Err(e) => panic!("Couldn't open file mandelbrot.ppm because: {}", e),
-    };
+    let xmin: f64 = -2.0; // xmin and xmax for x axis of mandelbrot set
+    let xmax: f64 = 1.0;
+    let ymin: f64 = -1.5; // same here
+    let ymax: f64 = 1.5;
+    let scale_x = (xmax - xmin) / IMAGE_WIDTH as f64; // for adapting it
+    let scale_y = (ymax - ymin) / IMAGE_HEIGHT as f64;
 
-    writeln!(out_file, "P3")
-        .map_err(|e| panic!("Failed writing to file: {}", e))
-        .unwrap();
-    writeln!(out_file, "{} {}", IMAGE_WIDTH, IMAGE_HEIGHT).unwrap(); // safe to unwrap because we checked for error in first write
-    writeln!(out_file, "255").unwrap();
-    for i in data.chunks(3) {
-        write!(out_file, "{} {} {}\n", i[0], i[1], i[2]).unwrap();
+    const MAX_ITERATIONS: usize = 240;
+
+    for (x, y, pixel) in data.enumerate_pixels_mut() {
+        // instead of iterating over the x values, we increase it as we move in pixel area
+        let cx = xmin + x as f64 * scale_x;
+        let cy = ymin + y as f64 * scale_y;
+
+        // remember z0 = x^2 + c
+        // here c remains constant because its what we're testing while z changes as it is the iterated value
+        let complex_point = Complex::new(cx, cy);
+
+        let colour_lum = calculate_val(complex_point, MAX_ITERATIONS);
+        *pixel = image::Luma([colour_lum as u8]);
     }
+
+    // save img
+    data.save("mandelbrot.png").unwrap();
 
     // das ist finite now
 }
