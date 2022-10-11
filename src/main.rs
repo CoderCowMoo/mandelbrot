@@ -14,8 +14,8 @@ fn calculate_val(c: Complex<f64>, max_iter: usize) -> usize {
 
 // graph mandelbrot set in a .ppm file.
 fn main() {
-    const IMAGE_WIDTH: usize = 500;
-    const IMAGE_HEIGHT: usize = 500;
+    const IMAGE_WIDTH: usize = 25500;
+    const IMAGE_HEIGHT: usize = 25500;
 
     let mut data = ImageBuffer::new(IMAGE_WIDTH as u32, IMAGE_HEIGHT as u32);
 
@@ -28,6 +28,8 @@ fn main() {
 
     const MAX_ITERATIONS: usize = 240;
 
+    let counter = IMAGE_HEIGHT as f64 / 20.0;
+
     for (x, y, pixel) in data.enumerate_pixels_mut() {
         // instead of iterating over the x values, we increase it as we move in pixel area
         let cx = xmin + x as f64 * scale_x;
@@ -39,6 +41,15 @@ fn main() {
 
         let colour_lum = calculate_val(complex_point, MAX_ITERATIONS);
         *pixel = image::Luma([colour_lum as u8]);
+
+        // progress counter for possibly long renders
+        if x as usize == IMAGE_WIDTH - 1 && (IMAGE_HEIGHT - y as usize - 1) % counter as usize == 0
+        {
+            println!(
+                "{}% left",
+                ((IMAGE_HEIGHT - y as usize - 1) as f64 / IMAGE_HEIGHT as f64) * 100.0
+            );
+        }
     }
 
     // save img
